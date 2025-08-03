@@ -1,6 +1,9 @@
 let synth = window.speechSynthesis;
 synth.onvoiceschanged = () => synth.getVoices();
 
+let listeningActive = true;
+let recognition = null;
+
 async function loadScriptMap() {
   const local = localStorage.getItem('customScript');
   if (local) return JSON.parse(local);
@@ -31,36 +34,50 @@ function speak(text) {
 
 async function startListening() {
   const scriptMap = await loadScriptMap();
-  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-  recognition.continuous = false;
-  recognition.lang = 'en-US';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
+  if (!recognition) {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    document.getElementById('transcript').innerText = "🗣 " + transcript;
-    const match = getBestMatch(transcript, scriptMap);
-    if (match) {
-      document.getElementById('response').innerText = "💬 " + match;
-      speak(match);
-    } else {
-      document.getElementById('response').innerText = "❌ No match found.";
-    }
-  };
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById('transcript').innerText = "🗣 " + transcript;
+      const match = getBestMatch(transcript, scriptMap);
+      if (match) {
+        document.getElementById('response').innerText = "💬 " + match;
+        speak(match);
+      } else {
+        document.getElementById('response').innerText = "❌ No match found.";
+      }
+    };
 
-  recognition.onerror = (e) => {
-    document.getElementById('response').innerText = "Error: " + e.error;
-    if (e.error !== 'not-allowed') {
-      setTimeout(() => recognition.start(), 1000);
-    }
-  };
+    recognition.onerror = (e) => {
+      document.getElementById('response').innerText = "Error: " + e.error;
+      if (e.error !== 'not-allowed' && listeningActive) {
+        setTimeout(() => recognition.start(), 1000);
+      }
+    };
 
-  recognition.onend = () => {
-    setTimeout(() => recognition.start(), 500);
-  };
+    recognition.onend = () => {
+      if (listeningActive) setTimeout(() => recognition.start(), 500);
+    };
+  }
 
-  recognition.start();
+  if (listeningActive) recognition.start();
+}
+
+function toggleListening() {
+  listeningActive = !listeningActive;
+  const btn = document.getElementById('toggleListening');
+  btn.innerText = listeningActive ? "🔇 Stop Listening" : "🔊 Start Listening";
+
+  if (listeningActive) {
+    startListening();
+  } else if (recognition) {
+    recognition.stop();
+  }
 }
 
 window.addEventListener('load', () => {
