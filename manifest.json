@@ -1,0 +1,9 @@
+{
+  "name": "Jeff's Script App",
+  "short_name": "ScriptApp",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "description": "Listen, match, and reply discreetly via earpiece.",
+  "icons": []
+}
